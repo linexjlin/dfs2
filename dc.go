@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	PING = 0xFF
+	PONG = 0xFF
+)
+
 //这个类实现了，tcp连接保持功能。 这里我们通过C/S ping pong 的方式实现了tcp保持，并检测连接。
 type DCon struct {
 	con net.Conn
@@ -15,7 +20,7 @@ type DCon struct {
 
 func (dc *DCon) sendPing() error {
 	//	fmt.Println("befor Send")
-	_, e := dc.con.Write([]byte{0xFF})
+	_, e := dc.con.Write([]byte{PING})
 	//	fmt.Println("after send")
 	return e
 }
