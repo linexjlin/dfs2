@@ -42,6 +42,10 @@ func (df *DFileHTTP) AddName(fileName string) error {
 
 //等待获取tcpreader在这里最多等待3秒，超过3秒，
 func (df *DFileHTTP) GetReader(fileName string) (r io.Reader, e error) {
+	//GetReaderFromLocal
+	//return
+	//broadcast
+
 	timeout := make(chan int, 1)
 
 	go func() {
@@ -64,7 +68,7 @@ func (df *DFileHTTP) GetReader(fileName string) (r io.Reader, e error) {
 	return nil, errors.New("interal error!")
 }
 
-//用来将IO导向http 或者 tcp
+//用来将输入导向http 或者 tcp
 func (df *DFileHTTP) IOPass(fileName string) (e error) {
 	if e != nil {
 		return errors.New("No Reader found")
@@ -80,7 +84,7 @@ func (df *DFileHTTP) IOPass(fileName string) (e error) {
 	return nil
 }
 
-//sub server
+//sub TCP server server 到server 间用tcp传
 func (df *DFileHTTP) TCPServeFile(fileName string) {
 	var e error
 	df.htcMap[fileName].tcpReader, e = df.GetReader(fileName)
@@ -92,7 +96,7 @@ func (df *DFileHTTP) TCPServeFile(fileName string) {
 	return
 }
 
-//the head server
+//the head HTTP server 请求源头
 func (df *DFileHTTP) HTTPServeTCPFile(rw http.ResponseWriter, r *http.Request) {
 	//	lg.Println("Current URL is:", r.URL.Path)
 
