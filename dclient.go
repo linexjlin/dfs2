@@ -7,17 +7,12 @@ import (
 import "net"
 import "os"
 
-type FReader struct {
-	fileName string
-	reader   chan io.Reader
-}
-
 type DClient struct {
 	dcons      DCons
 	serverList []string
 	paths      []string
 	serverCnt  int
-	fReaderc   chan FReader
+	nrc        chan NameReader //name reader chan
 }
 
 func (dc *DClient) Dial() {
@@ -42,29 +37,34 @@ func (dc *DClient) GetReader(fileName string) (r io.Reader, finfo os.FileInfo) {
 	if r, finfo = dc.FindLocalReader(fileName); r != nil {
 		return r, finfo
 	} else {
-		rc := make(chan io.Reader, 1)
-		dc.fReaderc <- FReader{fileName, rc} //ask outside for reader
-		reader := dc.GetOutsideReader(rc)
+		var rc io.Reader
+		dc.nrc <- NameReader{fileName, rc} //ask outside for reader
+		reader := dc.GetOutsideReader()
 		if reader != nil {
 			return reader, nil
 		}
-		return nil
+		return nil, nil
 	}
 }
 
 //Get reader from outside
-func (dc *DClient) GetOutsideReader(rc chan io.Reader) io.Reader {
+func (dc *DClient) GetOutsideReader() io.Reader {
 	select {
-	case reader := <-rc:
-		return reader
+	case nr := <-dc.nrc:
+		return nr.reader
 	case <-time.After(time.Second * 3):
 		return nil
 	}
 }
 
-func (dc *DClient) GetWriter(host string) io.Writer {
-	con, e := net.Dial("tcp", host)
+func (dc *DClient) GetWriter(hn HostMsg) io.Writer {
+	con, e := net.Dial("tcp", hn.host)
 	if e != nil {
+		return nil
+	}
+	var c ConCom
+	_, e2 := c.PutString(hn.msg, con)
+	if e2 != nil {
 		return nil
 	}
 	return con
@@ -73,27 +73,25 @@ func (dc *DClient) GetWriter(host string) io.Writer {
 //
 func (dc *DClient) ClientDoing(hm HostMsg) {
 	fileName := hm.msg
-	host := hm.host
 
 	//try to get reader
-	reader finfo:= dc.GetReader(fileName)
+	reader, finfo := dc.GetReader(fileName)
 	if reader == nil {
-		return nil
+		return
 	}
 
 	//get upper writer
-	writer := dc.GetWrier(host)
+	writer := dc.GetWriter(hm)
 	if writer == nil {
-		return nil
+		return
 	}
-	if finfo!=nil {
-		ds.WriteInfo(finfo,writer)
-		io.Copy(writer,reader)
+	if finfo != nil {
+		dc.WriteInfo(finfo, writer)
+		io.Copy(writer, reader)
 	}
 }
 
-
-func (dc *DClient) WriteInfo(finfo os.FileInfo,w io.Writer) error {
+func (dc *DClient) WriteInfo(finfo os.FileInfo, w io.Writer) error {
 	return nil
 }
 

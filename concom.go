@@ -45,3 +45,14 @@ func (com ConCom) GetConType(con net.Conn) (ctype string, err error) {
 	com.sendResponse(con)
 	return string(rst), e
 }
+
+func (com ConCom) GetString(con net.Conn) (str string, err error) {
+	reader := bufio.NewReader(con)
+	rst, _, e := reader.ReadLine()
+	return string(rst), e
+}
+
+func (com ConCom) PutString(str string, con net.Conn) (n int, err error) {
+	nn, e := con.Write([]byte(str))
+	return nn, e
+}

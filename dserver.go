@@ -17,6 +17,15 @@ func (ds *DServer) init() {
 	return
 }
 
+func (ds *DServer) AddName(fn string) {
+	if _, ok := ds.fileReader[fn]; ok {
+		return
+	}
+	var rd chan io.Reader
+	ds.fileReader[fn] = rd
+	return
+}
+
 func (ds *DServer) SetFileListenAddr(addr string) error {
 	ds.fladdr = addr
 	return nil
@@ -32,8 +41,15 @@ func (ds *DServer) Listen() {
 	for {
 		s, _ := l.Accept()
 		defer s.Close()
+		ds.clientCnt++
 		ds.dcons.AddToKeep(s)
 	}
+}
+
+func (ds *DServer) DealFileCon(s net.Conn) {
+	var con ConCom
+	fn, _ := con.GetString(s)
+	ds.fileReader[fn] <- s
 }
 
 func (ds *DServer) FileListen() {
@@ -41,6 +57,7 @@ func (ds *DServer) FileListen() {
 	for {
 		s, _ := l.Accept()
 		defer s.Close()
+		go ds.DealFileCon(s)
 	}
 }
 
@@ -52,13 +69,18 @@ func (ds *DServer) GetReader(fileName string) io.Reader {
 	return nil
 }
 
-func (ds *DServer) ReceiveNamePostReader(msgc <-chan string, rc chan<- io.Reader) {
+func (ds *DServer) ReceiveNamePostReader(nameChan chan NameReader) {
 	for {
 		select {
-		case fileName := <-msgc:
-			ds.dcons.Broadcast(fileName)
-			rc <- ds.GetReader(fileName)
-			delete(ds.fileReader, fileName)
+		case nr := <-nameChan:
+			go func() {
+				ds.AddName(nr.name)
+				ds.dcons.Broadcast(nr.name)
+				rd := ds.GetReader(nr.name)
+				nameChan <- NameReader{nr.name, rd}
+				delete(ds.fileReader, nr.name)
+			}()
+
 		}
 	}
 }
