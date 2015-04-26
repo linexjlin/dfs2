@@ -8,11 +8,11 @@ import (
 var nameMap map[string]chan net.Conn
 
 //server routine
-func serverSide() {
-	server := NewDServer()
-	server.SetListenAddr(":8612")
-	server.Listen()
-}
+//func serverSide() {
+//	server := NewDServer()
+//	server.SetListenAddr(":8612")
+//	server.Listen()
+//}
 
 /*
 //the client wait receive message from server routine
@@ -44,7 +44,25 @@ func httpSide() {
 }
 
 func main() {
-	go serverSide()
-	//	go clientSide()
-	httpSide()
+	var nrc = make(chan NameReader)
+	dh := DHttp{}
+	dh.dc.Nrc = nrc
+	dh.Init()
+	go dh.HttpListen()
+
+	s := DServer{}
+	s.Init()
+	go s.ServerListen()
+	s.Nrc = nrc
+	go s.ReceiveName()
+	go s.FileListen()
+
+	c := DClient{}
+	c.Init()
+	c.Dial()
+	c.ReceiveName()
+	for {
+		time.Sleep(time.Second * 2)
+	}
+
 }

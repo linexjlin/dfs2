@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -20,18 +21,18 @@ type DCon struct {
 }
 
 func (dc *DCon) sendPing() error {
-	//	fmt.Println("befor Send")
+	fmt.Println("befor Send")
 	_, e := dc.con.Write([]byte{PING})
-	//	fmt.Println("after send")
+	fmt.Println("after send")
 	return e
 }
 
 func (dc *DCon) receivePong() error {
-	//	fmt.Println("befor receive")
+	fmt.Println("befor receive")
 	b := make([]byte, 1)
-	_, e := dc.con.Read(b)
-	//	fmt.Println("after receive")
-	//	fmt.Println("receive", n, b)
+	n, e := dc.con.Read(b)
+	fmt.Println("after receive")
+	fmt.Println("receive", n, b)
 	return e
 }
 

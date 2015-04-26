@@ -6,11 +6,6 @@ import (
 	"sync"
 )
 
-type HostMsg struct {
-	host string
-	msg  string
-}
-
 //用来维护所有客户端连接。 在个类里实现了，保持tcp连接，断开连接自动清理功能。
 type DCons struct {
 	DCmap   map[DCon]int
@@ -27,12 +22,18 @@ func NewDCons() *DCons {
 	return ndcs
 }
 
+func (dcs *DCons) Init() {
+	dcs.count = 0
+	dcs.DCmap = make(map[DCon]int)
+}
+
 func (dcs *DCons) AddToKeep(c net.Conn) {
 	var tlc sync.Mutex
 	ch := dcs.gmsgOut
 	dc := DCon{c, tlc, ch}
 	dcs.DCmap[dc] = dcs.count
 	dcs.count++
+
 	go func() {
 		dcs.Del(dc.KeepConn())
 	}()
